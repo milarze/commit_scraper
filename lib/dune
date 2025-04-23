@@ -1,0 +1,2 @@
+(library
+ (name commit_scraper))

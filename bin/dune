@@ -1,0 +1,4 @@
+(executable
+ (public_name commit_scraper)
+ (name main)
+ (libraries commit_scraper))
