@@ -19,7 +19,13 @@
  (name commit_scraper)
  (synopsis "Scrape commit messages and diffs from a repository in Github")
  (description "Use the Github API to extract commit messages and diffs from a repository. The resulting data can be used for training a model to generate commit messages.")
- (depends ocaml)
+ (depends
+  (ocaml (>= 4.14.0))
+  (lwt (>= 5.0.0))
+  (cohttp (>= 4.0.0))
+  (cohttp-lwt-unix (>= 4.0.0))
+  (tls-lwt (>= 2.0.1))
+  (yojson (>= 1.7.0)))
  (tags
   ("commit"
    "scraper"

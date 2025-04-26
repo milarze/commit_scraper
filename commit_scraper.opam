@@ -12,7 +12,12 @@ doc: "https://url/to/documentation"
 bug-reports: "https://github.com/username/reponame/issues"
 depends: [
   "dune" {>= "3.17"}
-  "ocaml"
+  "ocaml" {>= "4.14.0"}
+  "lwt" {>= "5.0.0"}
+  "cohttp" {>= "4.0.0"}
+  "cohttp-lwt-unix" {>= "4.0.0"}
+  "tls-lwt" {>= "2.0.1"}
+  "yojson" {>= "1.7.0"}
   "odoc" {with-doc}
 ]
 build: [

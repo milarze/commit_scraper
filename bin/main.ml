@@ -1,10 +1,6 @@
 let () =
-  let message = Commit_scraper.Api_client.hello "World" in
-  print_endline message;
-
-  let url =
-    Commit_scraper.Api_client.get_commits ~repo:"ezralim/commit_scraper"
-      ~token:"your_token_here"
+  let response_body =
+    Lwt_main.run
+      (Commit_scraper.Api_client.body ~repo:"example/repo" ~token:"example_token")
   in
-  print_endline url
-(* You can add more functionality here, such as parsing the response from the API. *)
+  print_endline response_body
