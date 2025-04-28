@@ -1,11 +1,19 @@
 open Lwt
 open Cohttp_lwt_unix
+open Str
+
+let is_valid_repo repo = string_match (regexp "^[^/]+/[^/]+$") repo 0
 
 (* This function constructs the URL for fetching commits from the specified repository. *)
 (* It takes a repository name as input and returns the corresponding URL. *)
 (* The URL is formatted to point to the GitHub API endpoint for commits. *)
 (* Example: "https://api.github.com/repos/username/reponame/commits" *)
-let get_url ~repo = Printf.sprintf "https://api.github.com/repos/%s/commits" repo
+let get_url ~repo =
+  if is_valid_repo repo then Printf.sprintf "https://api.github.com/repos/%s/commits" repo
+  else
+    failwith
+      (Printf.sprintf "Invalid repository format: %s. Expected format: username/reponame"
+         repo)
 
 (** * Get the commits from a repo using the provided token. *)
 let get_commits ~repo ~token =

@@ -1,3 +1,3 @@
 (library
  (name commit_scraper)
- (libraries lwt cohttp cohttp-lwt-unix yojson))
+ (libraries lwt cohttp cohttp-lwt-unix yojson str))

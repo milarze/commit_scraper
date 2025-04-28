@@ -1,2 +1,9 @@
 (test
- (name test_commit_scraper))
+ (name test_commit_scraper)
+ (modules test_commit_scraper)
+ (libraries alcotest))
+
+(test
+  (name test_api_client)
+  (modules test_api_client)
+  (libraries alcotest commit_scraper))
