@@ -26,9 +26,11 @@ let () =
   else
     let commits = get_commits ~repo:!repo ~token:!token in
     let json = Yojson.Safe.Util.to_list commits in
-    let commit_data = extract_data_from_commit ~commits:json in
+    let commit_data : Commit_scraper.Types.commit list =
+      extract_data_from_commit ~commits:json
+    in
     List.iter
-      (fun commit ->
+      (fun (commit : Commit_scraper.Types.commit) ->
         Printf.printf "SHA: %s\n" commit.sha;
         Printf.printf "Author: %s\n" commit.author;
         Printf.printf "Date: %s\n" commit.date;
