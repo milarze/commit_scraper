@@ -2,7 +2,7 @@ val get_commits : repo:string -> token:string -> Yojson.Safe.t
 (** [get_commits ~repo ~token] fetches commits from the specified [repo] using the
     provided [token]. *)
 
-val get_url : repo:string -> string
+val list_commits_url : repo:string -> string
 (** [get_url ~repo] constructs the URL for fetching commits from the specified [repo]. *)
 
 val body : repo:string -> token:string -> string Lwt.t

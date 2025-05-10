@@ -9,7 +9,7 @@ let is_valid_repo_name ~repo = string_match (regexp "^[^/]+/[^/]+$") repo 0
 (* It takes a repository name as input and returns the corresponding URL. *)
 (* The URL is formatted to point to the GitHub API endpoint for commits. *)
 (* Example: "https://api.github.com/repos/username/reponame/commits" *)
-let get_url ~repo =
+let list_commits_url ~repo =
   if is_valid_repo_name ~repo then
     Printf.sprintf "https://api.github.com/repos/%s/commits" repo
   else
@@ -20,7 +20,7 @@ let get_url ~repo =
 let body ~repo ~token =
   print_endline (Printf.sprintf "Fetching commits from %s\n" repo);
   print_endline (Printf.sprintf "Using token: %s\n" token);
-  let uri = get_url ~repo in
+  let uri = list_commits_url ~repo in
   Client.get (Uri.of_string uri) >>= fun (_, body) -> Cohttp_lwt.Body.to_string body
 
 (** * Get the commits from a repo using the provided token. *)

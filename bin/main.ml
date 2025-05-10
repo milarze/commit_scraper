@@ -35,4 +35,9 @@ let () =
         Printf.printf "Author: %s\n" commit.author;
         Printf.printf "Date: %s\n" commit.date;
         Printf.printf "Message: %s\n\n" commit.message)
-      commit_data
+      commit_data;
+    (* Write data to file in JSONL format *)
+    let filename =
+      Str.global_replace (Str.regexp "/") "_" (Printf.sprintf "%s_commits.jsonl" !repo)
+    in
+    Commit_scraper.Data_writer.write_data_to_file ~filename ~data:commit_data
