@@ -52,3 +52,10 @@ to the current directory. The file is named `<owner>_<repo>_commits.jsonl`.
 commit_scraper --repo <owner/repo> --token <token>
 ```
 
+### Using Specific Output File
+
+You can specify a different output file using the `--output` option:
+
+```bash
+commit_scraper --repo <owner/repo> --token <token> --output <output_file>
+```
