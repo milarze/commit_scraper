@@ -64,7 +64,7 @@ let get_request_body ~(headers : Cohttp.Header.t) ~(url : string) :
 (* Example: "https://api.github.com/repos/username/reponame/commits" *)
 let list_commits_url ~repo =
   if is_valid_repo_name ~repo then
-    Printf.sprintf "https://api.github.com/repos/%s/commits?per_page=5" repo
+    Printf.sprintf "https://api.github.com/repos/%s/commits" repo
   else
     failwith
       (Printf.sprintf "Invalid repository format: %s. Expected format: username/reponame"
