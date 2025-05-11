@@ -1,8 +1,8 @@
 (** Module for extracting data from commit JSON objects. *)
 
-val extract_data_from_commit : commits:Yojson.Safe.t list -> Types.commit list
-(** [extract_data_from_commit commits] extracts and prints SHA, author, and date from a
-    list of commit JSON objects.
+val extract_commit : commit_json:Yojson.Safe.t -> Types.commit option
+(** [extract_commit commit_json] extracts SHA, author, date, message, and diff from a
+    commit JSON object.
 
-    @param list of commits parsed as Yojson.Safe.t
-    @return list of Types.commit*)
+    @param commit_json parsed as Yojson.Safe.t
+    @return Some commit if all fields are present, None otherwise *)

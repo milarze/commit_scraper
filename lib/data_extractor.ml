@@ -16,7 +16,7 @@ let extract_commit ~commit_json =
       commit_json
       |> member "files"
       |> to_list
-      |> List.map (fun file -> file |> member "diff" |> to_string)
+      |> List.map (fun file -> file |> member "patch" |> to_string)
       |> String.concat "\n"
     in
     Some { sha; author; date; message; diff }
@@ -24,6 +24,3 @@ let extract_commit ~commit_json =
     Printf.eprintf "Error: Missing fields in JSON object\n";
     Printf.eprintf "Dropping commit...\n";
     None
-
-let extract_data_from_commit ~commits =
-  List.filter_map (fun commit_json -> extract_commit ~commit_json) commits

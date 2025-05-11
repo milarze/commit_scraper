@@ -26,16 +26,16 @@ let () =
   else
     let commits = get_commits ~repo:!repo ~token:!token in
     let json = Yojson.Safe.Util.to_list commits in
-    let commit_data : Commit_scraper.Types.commit list =
-      extract_data_from_commit ~commits:json
+    let commit_data =
+      List.filter_map
+        (fun commit ->
+          let commit_sha =
+            commit |> Yojson.Safe.Util.member "sha" |> Yojson.Safe.Util.to_string
+          in
+          let commit_json = get_commit ~repo:!repo ~token:!token ~commit_sha in
+          extract_commit ~commit_json)
+        json
     in
-    List.iter
-      (fun (commit : Commit_scraper.Types.commit) ->
-        Printf.printf "SHA: %s\n" commit.sha;
-        Printf.printf "Author: %s\n" commit.author;
-        Printf.printf "Date: %s\n" commit.date;
-        Printf.printf "Message: %s\n\n" commit.message)
-      commit_data;
     (* Write data to file in JSONL format *)
     let filename =
       Str.global_replace (Str.regexp "/") "_" (Printf.sprintf "%s_commits.jsonl" !repo)
