@@ -25,7 +25,8 @@
   (cohttp (>= 4.0.0))
   (cohttp-lwt-unix (>= 4.0.0))
   (tls-lwt (>= 2.0.1))
-  (yojson (>= 1.7.0)))
+  (yojson (>= 1.7.0))
+  (alcotest :with-test))
  (tags
   ("commit"
    "scraper"
