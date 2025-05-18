@@ -1,4 +1,3 @@
-open Commit_scraper.Data_extractor
 open Commit_scraper.Api_client
 
 let repo = ref ""
@@ -25,6 +24,11 @@ let split_repo repo =
         "Error: Invalid repository format. Expected format: username/reponame.\n";
       exit 1
 
+let touch_file filename =
+  let oc = open_out filename in
+  Printf.fprintf oc "";
+  close_out oc
+
 let () =
   Printf.printf "Commit Scraper\n";
   Arg.parse speclist anon_func usage_msg;
@@ -34,21 +38,7 @@ let () =
     Printf.eprintf
       "Error: Invalid repository format. Expected format: username/reponame.\n%s"
       usage_msg
-  else (
-    Printf.printf "Fetching commits from %s\n" !repo;
-    (* Fetch commits from the repository *)
-    let json = get_commits ~repo:!repo ~token:!token in
-    Printf.printf "Fetched %d commits\n" (List.length json);
-    let commit_data =
-      List.filter_map
-        (fun commit ->
-          let commit_sha =
-            commit |> Yojson.Safe.Util.member "sha" |> Yojson.Safe.Util.to_string
-          in
-          let commit_json = get_commit ~repo:!repo ~token:!token ~commit_sha in
-          extract_commit ~commit_json)
-        json
-    in
+  else
     (* Write data to file in JSONL format *)
     let filepath =
       if !out_file <> "" then !out_file
@@ -59,4 +49,4 @@ let () =
            Printf.printf "Directory %s already exists.\n" username);
         Printf.sprintf "%s/%s_commits.jsonl" username reponame
     in
-    Commit_scraper.Data_writer.write_data_to_file ~filename:filepath ~data:commit_data)
+    touch_file filepath
