@@ -1,88 +1,114 @@
-open Lwt
-open Cohttp_lwt_unix
-open Str
+open Domain_types
+open Lwt.Syntax
 
-(** Check if the given repository name is valid. A valid repository name should match the
-    pattern "username/reponame".
+module Make (H : sig
+  val get : ?headers:(string * string) list -> string -> (int * string) Lwt.t
+end) =
+struct
+  let base_url = "https://api.github.com/repos/"
+  let user_agent = "CommitScraper/1.0"
 
-    @param repo The repository name in the format "username/reponame".
-    @return true if the repository name is valid, false otherwise. *)
-let is_valid_repo_name ~(repo : string) = string_match (regexp "^[^/]+/[^/]+$") repo 0
+  let default_headers =
+    [ ("User-Agent", user_agent); ("Accept", "application/vnd.github.v3+json") ]
 
-(** Create a request header with the provided token. The header is used for authentication
-    when making requests to the GitHub API.
+  let extract_url (link : string) : string option =
+    if Str.string_match (Str.regexp "<\\([^>]+\\)>") link 0 then (
+      let matched_url = Str.matched_group 1 link in
+      Printf.printf "Matched URL: %s\n" matched_url;
+      Some matched_url)
+    else None
 
-    @param token The GitHub token for authentication.
-    @return A Cohttp header with the authorization token. *)
-let request_headers ~(token : string) : Cohttp.Header.t =
-  let headers = Cohttp.Header.init_with "Authorization" ("Bearer " ^ token) in
-  Cohttp.Header.add headers "Accept" "application/vnd.github.v3+json"
+  let extract_next_page_url ~(header : string) : string option =
+    let links = Str.split (Str.regexp ",") header in
+    Option.bind
+      (List.find_opt
+         (fun link ->
+           let parts = Str.split (Str.regexp ";") link in
+           List.exists (fun part -> String.trim part = "rel=\"next\"") parts)
+         links)
+      extract_url
 
-let extract_url (link : string) : string option =
-  if Str.string_match (Str.regexp "<\\([^>]+\\)>") link 0 then (
-    let matched_url = Str.matched_group 1 link in
-    Printf.printf "Matched URL: %s\n" matched_url;
-    Some matched_url)
-  else None
+  let list_commits ~repo ?(page = 1) ?(per_page = 100) () =
+    if not (Utils.is_valid_repo_name ~repo) then Lwt.return (Error (InvalidRepoName repo))
+    else
+      let url =
+        Printf.sprintf "%s%s/commits?page=%d&per_page=%d" base_url repo page per_page
+      in
 
-(** Extract the next page URL from the response headers. The next page URL is provided in
-    the "Link" header of the response.
+      let* status, body = H.get ~headers:default_headers url in
+      match status with
+      | 200 ->
+          let next_page_url = extract_next_page_url ~header:body in
+          let commits = Yojson.Safe.from_string body |> Yojson.Safe.Util.to_list in
+          let commit_summaries =
+            List.map
+              (fun commit_json ->
+                let sha = Yojson.Safe.Util.(commit_json |> member "sha" |> to_string) in
+                { sha })
+              commits
+          in
+          Lwt.return (Ok (commit_summaries, next_page_url))
+      | 404 -> Lwt.return (Error NotFound)
+      | 401 -> Lwt.return (Error Unauthorized)
+      | 403 -> Lwt.return (Error RateLimitExceeded)
+      | _ -> Lwt.return (Error (NetworkError (string_of_int status)))
 
-    @param headers The response headers.
-    @return The next page URL if it exists, None otherwise. *)
-let extract_next_page_url ~(headers : Cohttp.Header.t) : string option =
-  match Cohttp.Header.get headers "Link" with
-  | Some link_header ->
-      let links = Str.split (Str.regexp ",") link_header in
-      Option.bind
-        (List.find_opt
-           (fun link ->
-             let parts = Str.split (Str.regexp ";") link in
-             List.exists (fun part -> String.trim part = "rel=\"next\"") parts)
-           links)
-        extract_url
-  | None -> None
+  let get_commit_details ~repo ~sha () =
+    if not (Utils.is_valid_repo_name ~repo) then Lwt.return (Error (InvalidRepoName repo))
+    else
+      let url = Printf.sprintf "%s%s/commits/%s" base_url repo sha in
 
-(** Get the URL that requests a list of commits from Github.
+      let* status, body = H.get ~headers:default_headers url in
+      match status with
+      | 200 ->
+          let commit_json = Yojson.Safe.from_string body in
+          let sha = Yojson.Safe.Util.(commit_json |> member "sha" |> to_string) in
+          let author =
+            Yojson.Safe.Util.(
+              commit_json
+              |> member "commit"
+              |> member "author"
+              |> member "name"
+              |> to_string)
+          in
+          let date =
+            Yojson.Safe.Util.(
+              commit_json
+              |> member "commit"
+              |> member "author"
+              |> member "date"
+              |> to_string)
+          in
+          let message =
+            Yojson.Safe.Util.(
+              commit_json |> member "commit" |> member "message" |> to_string)
+          in
+          let diff =
+            Yojson.Safe.Util.(
+              commit_json
+              |> member "files"
+              |> to_list
+              |> List.map (fun file -> file |> member "patch" |> to_string)
+              |> String.concat "\n")
+          in
+          Lwt.return (Ok { sha; author; date; message; diff })
+      | 404 -> Lwt.return (Error NotFound)
+      | 401 -> Lwt.return (Error Unauthorized)
+      | 403 -> Lwt.return (Error RateLimitExceeded)
+      | _ -> Lwt.return (Error (NetworkError (string_of_int status)))
+end
 
-    @param repo The repository name in the format "username/reponame".
-    @return
-      The URL for the list of commits in the format
-      "https://api.github.com/repos/username/reponame/commits". *)
-let list_commits_url ~(repo : string) : string =
-  if is_valid_repo_name ~repo then
-    Printf.sprintf "https://api.github.com/repos/%s/commits" repo
-  else
-    failwith
-      (Printf.sprintf "Invalid repository format: %s. Expected format: username/reponame"
-         repo)
+module HttpClient = struct
+  open Cohttp
+  open Cohttp_lwt_unix
 
-(** Get the commit URL from the repo and commit SHA. The URL is formatted to point to the
-    GitHub API endpoint for a specific commit. Example:
-    "https://api.github.com/repos/username/reponame/commits/commit_sha"
+  let get ?(headers = []) url =
+    let headers = Header.of_list headers in
+    let* response, body = Client.get ~headers (Uri.of_string url) in
+    let status = Response.status response in
+    let* body_string = Cohttp_lwt.Body.to_string body in
+    Lwt.return (Cohttp.Code.code_of_status status, body_string)
+end
 
-    @param repo The repository name in the format "username/reponame".
-    @param commit_sha The SHA of the commit.
-    @return
-      The URL for the commit in the format
-      "https://api.github.com/repos/username/reponame/commits/commit_sha". *)
-let get_commit_url ~(repo : string) ~(commit_sha : string) =
-  if is_valid_repo_name ~repo then
-    Printf.sprintf "https://api.github.com/repos/%s/commits/%s" repo commit_sha
-  else
-    failwith
-      (Printf.sprintf "Invalid repository format: %s. Expected format: username/reponame"
-         repo)
+include Make (HttpClient)
 
-(** Make a GET request to the specified URL with the provided headers. The response is a
-    tuple containing the HTTP response and the response body as a string.
-
-    @param headers The request headers.
-    @param url The URL to make the GET request to.
-    @return A tuple containing the HTTP response and the response body as a string. *)
-let get_request ~(headers : Cohttp.Header.t) ~(url : string) : Cohttp.Response.t * string
-    =
-  let uri = Uri.of_string url in
-  Lwt_main.run
-    ( Client.get ~headers uri >>= fun (resp, body) ->
-      body |> Cohttp_lwt.Body.to_string >|= fun body_string -> (resp, body_string) )
