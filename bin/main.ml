@@ -1,4 +1,6 @@
-open Commit_scraper.Api_client
+open Commit_scraper
+open Lwt.Syntax
+open Utils
 
 let repo = ref ""
 let token = ref ""
@@ -29,6 +31,33 @@ let touch_file filename =
   Printf.fprintf oc "";
   close_out oc
 
+let run ~repo ~output_file ~max_commits =
+  (* Initialize writer *)
+  let* () = Data_writer.initialize output_file in
+
+  (* Create processor with real implementations *)
+  let module Processor = Processor.Make (Api_client) (Data_writer) in
+  (* Calculate max pages based on max_commits *)
+  let max_pages =
+    if max_commits <= 0 then None else Some ((max_commits + 99) / 100)
+    (* Ceiling division by 100 *)
+  in
+
+  (* Process commits *)
+  let* result = Processor.process_all_commits ~repo ~per_page:100 ~max_pages () in
+
+  (* Close writer *)
+  let* () = Data_writer.close () in
+
+  (* Handle result *)
+  match result with
+  | Ok commits ->
+      Printf.printf "Successfully processed %d commits\n" (List.length commits);
+      Lwt.return_unit
+  | Error e ->
+      Printf.eprintf "Error: %s\n" (Domain_types.string_of_api_error e);
+      Lwt.return_unit
+
 let () =
   Printf.printf "Commit Scraper\n";
   Arg.parse speclist anon_func usage_msg;
@@ -49,4 +78,5 @@ let () =
            Printf.printf "Directory %s already exists.\n" username);
         Printf.sprintf "%s/%s_commits.jsonl" username reponame
     in
-    touch_file filepath
+    touch_file filepath;
+    Lwt_main.run (run ~repo:!repo ~output_file:filepath ~max_commits:0)
