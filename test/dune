@@ -1,14 +1,28 @@
+(library
+ (name api_mocks)
+ (modules api_mocks)
+ (libraries commit_scraper lwt)
+ (flags (:standard -w -26-27)))
+
 (test
  (name test_commit_scraper)
  (modules test_commit_scraper)
  (libraries alcotest))
 
 (test
-  (name test_api_client)
-  (modules test_api_client)
-  (libraries alcotest commit_scraper))
+  (name test_processor)
+  (modules test_processor)
+  (flags (:standard -w -26-27))
+  (libraries alcotest
+             lwt.unix
+             commit_scraper
+             api_mocks))
 
 (test
-  (name test_data_extractor)
-  (modules test_data_extractor)
-  (libraries alcotest commit_scraper))
+  (name test_data_writer)
+  (modules test_data_writer)
+  (flags (:standard -w -26-27))
+  (libraries alcotest
+             lwt.unix
+             commit_scraper
+             api_mocks))

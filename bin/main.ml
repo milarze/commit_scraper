@@ -1,5 +1,6 @@
-open Commit_scraper.Data_extractor
-open Commit_scraper.Api_client
+open Commit_scraper
+open Lwt.Syntax
+open Utils
 
 let repo = ref ""
 let token = ref ""
@@ -25,6 +26,38 @@ let split_repo repo =
         "Error: Invalid repository format. Expected format: username/reponame.\n";
       exit 1
 
+let touch_file filename =
+  let oc = open_out filename in
+  Printf.fprintf oc "";
+  close_out oc
+
+let run ~repo ~output_file ~max_commits =
+  (* Initialize writer *)
+  let* () = Data_writer.initialize output_file in
+
+  (* Create processor with real implementations *)
+  let module Processor = Processor.Make (Api_client) (Data_writer) in
+  (* Calculate max pages based on max_commits *)
+  let max_pages =
+    if max_commits <= 0 then None else Some ((max_commits + 99) / 100)
+    (* Ceiling division by 100 *)
+  in
+
+  (* Process commits *)
+  let* result = Processor.process_all_commits ~repo ~per_page:100 ~max_pages () in
+
+  (* Close writer *)
+  let* () = Data_writer.close () in
+
+  (* Handle result *)
+  match result with
+  | Ok commits ->
+      Printf.printf "Successfully processed %d commits\n" (List.length commits);
+      Lwt.return_unit
+  | Error e ->
+      Printf.eprintf "Error: %s\n" (Domain_types.string_of_api_error e);
+      Lwt.return_unit
+
 let () =
   Printf.printf "Commit Scraper\n";
   Arg.parse speclist anon_func usage_msg;
@@ -34,21 +67,7 @@ let () =
     Printf.eprintf
       "Error: Invalid repository format. Expected format: username/reponame.\n%s"
       usage_msg
-  else (
-    Printf.printf "Fetching commits from %s\n" !repo;
-    (* Fetch commits from the repository *)
-    let json = get_commits ~repo:!repo ~token:!token in
-    Printf.printf "Fetched %d commits\n" (List.length json);
-    let commit_data =
-      List.filter_map
-        (fun commit ->
-          let commit_sha =
-            commit |> Yojson.Safe.Util.member "sha" |> Yojson.Safe.Util.to_string
-          in
-          let commit_json = get_commit ~repo:!repo ~token:!token ~commit_sha in
-          extract_commit ~commit_json)
-        json
-    in
+  else
     (* Write data to file in JSONL format *)
     let filepath =
       if !out_file <> "" then !out_file
@@ -59,4 +78,5 @@ let () =
            Printf.printf "Directory %s already exists.\n" username);
         Printf.sprintf "%s/%s_commits.jsonl" username reponame
     in
-    Commit_scraper.Data_writer.write_data_to_file ~filename:filepath ~data:commit_data)
+    touch_file filepath;
+    Lwt_main.run (run ~repo:!repo ~output_file:filepath ~max_commits:0)
