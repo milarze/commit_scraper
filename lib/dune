@@ -1,3 +1,15 @@
 (library
  (name commit_scraper)
- (libraries lwt cohttp cohttp-lwt-unix yojson str))
+ (libraries lwt cohttp cohttp-lwt-unix yojson str atdgen-runtime))
+
+(rule
+  (targets github_commit_j.ml
+           github_commit_j.mli)
+  (deps github_commit.atd)
+  (action (run atdgen -j %{deps})))
+
+(rule
+  (targets github_commit_t.ml
+           github_commit_t.mli)
+  (deps github_commit.atd)
+  (action (run atdgen -t %{deps})))

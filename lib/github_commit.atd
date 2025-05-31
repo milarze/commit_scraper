@@ -1,0 +1,102 @@
+type tiimestamp = string
+
+type author = {
+  name : string;
+  email : string;
+  date : tiimestamp;
+}
+
+type user_type = [
+  | User <json name="User">
+  | Bot <json name="Bot">
+  | Organization <json name="Organization">
+]
+
+type user = {
+  login : string;
+  id : int;
+  node_id : string;
+  avatar_url : string;
+  gravatar_id : string;
+  url : string;
+  html_url : string;
+  followers_url : string;
+  following_url : string;
+  gists_url : string;
+  starred_url : string;
+  subscriptions_url : string;
+  organizations_url : string;
+  repos_url : string;
+  events_url : string;
+  received_events_url : string;
+  type_ <json name="type">: user_type;
+  site_admin : bool;
+}
+
+type tree = {
+  sha : string;
+  url : string;
+}
+
+type verification = {
+  verified : bool;
+  reason : string;
+  ?signature : string option;
+  ?payload : string option;
+  ?verified_at : tiimestamp option;
+}
+
+type commit_details = {
+  url : string;
+  author : author;
+  committer : author;
+  message : string;
+  tree : tree;
+  comment_count : int;
+  verification : verification;
+}
+
+type commit_stats = {
+  total : int;
+  additions : int;
+  deletions : int;
+}
+
+type file_change = {
+  filename : string;
+  additions : int;
+  deletions : int;
+  changes : int;
+  status : string;
+  raw_url : string;
+  blob_url : string;
+  ?patch : string option;
+}
+
+type commit_summary = {
+  url : string;
+  sha : string;
+  node_id : string;
+  html_url : string;
+  comments_url : string;
+  commit : commit_details;
+  ?author : user option;
+  ?committer : user option;
+  parents : tree list;
+}
+
+type github_commit = {
+  url : string;
+  sha : string;
+  node_id : string;
+  html_url : string;
+  comments_url : string;
+  commit : commit_details;
+  ?author : user option;
+  ?committer : user option;
+  parents : tree list;
+  stats : commit_stats;
+  files : file_change list;
+}
+
+type commit_summaries = commit_summary list

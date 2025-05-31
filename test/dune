@@ -4,6 +4,12 @@
  (libraries commit_scraper lwt)
  (flags (:standard -w -26-27)))
 
+(library
+  (name writer_mocks)
+  (modules writer_mocks)
+  (libraries commit_scraper lwt)
+  (flags (:standard -w -26-27)))
+
 (test
  (name test_commit_scraper)
  (modules test_commit_scraper)
@@ -16,7 +22,8 @@
   (libraries alcotest
              lwt.unix
              commit_scraper
-             api_mocks))
+             api_mocks
+             writer_mocks))
 
 (test
   (name test_data_writer)
@@ -25,4 +32,12 @@
   (libraries alcotest
              lwt.unix
              commit_scraper
-             api_mocks))
+             api_mocks
+             writer_mocks))
+
+(test
+  (name test_json_deserializer)
+  (modules test_json_deserializer)
+  (flags (:standard -w -26-27))
+  (libraries alcotest
+             commit_scraper))
