@@ -1,12 +1,7 @@
 open Domain_types
 open Lwt.Syntax
 
-module Make
-    (API : Api_client_intf.S)
-    (Writer : sig
-      val write_commit : commit -> unit Lwt.t
-    end) =
-struct
+module Make (API : Api_client_intf.S) (Writer : Data_writer_intf.S) = struct
   let process_commit ~repo ~sha =
     let* commit_result = API.get_commit_details ~repo ~sha () in
     match commit_result with
