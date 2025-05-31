@@ -34,3 +34,10 @@
              commit_scraper
              api_mocks
              writer_mocks))
+
+(test
+  (name test_json_deserializer)
+  (modules test_json_deserializer)
+  (flags (:standard -w -26-27))
+  (libraries alcotest
+             commit_scraper))
