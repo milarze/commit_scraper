@@ -35,16 +35,15 @@ struct
         Printf.sprintf "%s%s/commits?page=%d&per_page=%d" base_url repo page per_page
       in
 
-      let* status, body = H.get ~headers:default_headers url in
+      let* status, response = H.get ~headers:default_headers url in
       match status with
       | 200 ->
-          let next_page_url = extract_next_page_url ~header:body in
-          let commits = Yojson.Safe.from_string body |> Yojson.Safe.Util.to_list in
+          let next_page_url = extract_next_page_url ~header:response in
+          let commits = Github_commit_j.commit_summaries_of_string response in
           let commit_summaries =
             List.map
-              (fun commit_json ->
-                let sha = Yojson.Safe.Util.(commit_json |> member "sha" |> to_string) in
-                { sha })
+              (fun (commit_summary : Github_commit_t.commit_summary) ->
+                { sha = commit_summary.sha })
               commits
           in
           Lwt.return (Ok (commit_summaries, next_page_url))
@@ -61,37 +60,20 @@ struct
       let* status, body = H.get ~headers:default_headers url in
       match status with
       | 200 ->
-          let commit_json = Yojson.Safe.from_string body in
-          let sha = Yojson.Safe.Util.(commit_json |> member "sha" |> to_string) in
-          let author =
-            Yojson.Safe.Util.(
-              commit_json
-              |> member "commit"
-              |> member "author"
-              |> member "name"
-              |> to_string)
-          in
-          let date =
-            Yojson.Safe.Util.(
-              commit_json
-              |> member "commit"
-              |> member "author"
-              |> member "date"
-              |> to_string)
-          in
-          let message =
-            Yojson.Safe.Util.(
-              commit_json |> member "commit" |> member "message" |> to_string)
-          in
-          let diff =
-            Yojson.Safe.Util.(
-              commit_json
-              |> member "files"
-              |> to_list
-              |> List.map (fun file -> file |> member "patch" |> to_string)
-              |> String.concat "\n")
-          in
-          Lwt.return (Ok { sha; author; date; message; diff })
+          let github_commit = Github_commit_j.github_commit_of_string body in
+          Lwt.return
+            (Ok
+               {
+                 sha = github_commit.sha;
+                 author = github_commit.commit.author.name;
+                 date = github_commit.commit.author.date;
+                 message = github_commit.commit.message;
+                 diff =
+                   github_commit.files
+                   |> List.map (fun (file : Github_commit_t.file_change) ->
+                          file.patch |> Option.value ~default:"")
+                   |> String.concat "\n";
+               })
       | 404 -> Lwt.return (Error NotFound)
       | 401 -> Lwt.return (Error Unauthorized)
       | 403 -> Lwt.return (Error RateLimitExceeded)
@@ -111,4 +93,3 @@ module HttpClient = struct
 end
 
 include Make (HttpClient)
-
