@@ -46,7 +46,8 @@ Requires a Github Personal Access token with access to read the target
 repository.
 
 The tool automatically writes a JSONL file with commit messages and diffs
-to the current directory. The file is named `<owner>_<repo>_commits.jsonl`.
+to a sub-directory in the current directory, following the format:
+`./<owner>/<repo>_commits.jsonl`
 
 ```bash
 commit_scraper --repo <owner/repo> --token <token>
