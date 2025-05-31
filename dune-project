@@ -26,6 +26,8 @@
   (cohttp-lwt-unix (>= 4.0.0))
   (tls-lwt (>= 2.0.1))
   (yojson (>= 1.7.0))
+  (atdgen (>= 2.2.1))
+  (atdgen-runtime (>= 2.2.1))
   (alcotest :with-test))
  (tags
   ("commit"
