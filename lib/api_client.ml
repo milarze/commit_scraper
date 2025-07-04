@@ -49,7 +49,7 @@ struct
           Lwt.return (Ok (commit_summaries, next_page_url))
       | 404 -> Lwt.return (Error NotFound)
       | 401 -> Lwt.return (Error Unauthorized)
-      | 403 -> Lwt.return (Error RateLimitExceeded)
+      | 429 -> Lwt.return (Error RateLimitExceeded)
       | _ -> Lwt.return (Error (NetworkError (string_of_int status)))
 
   let get_commit_details ~repo ~sha () =
